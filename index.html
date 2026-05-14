@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<title>MoneyFactory Tycoon</title>
+
+<style>
+body {
+  font-family: Arial;
+  text-align: center;
+  background: #111;
+  color: white;
+}
+
+h1 {
+  font-size: 20px;
+}
+
+button {
+  margin: 5px;
+  padding: 10px;
+  border: none;
+  background: #333;
+  color: white;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #555;
+}
+
+#road {
+  position: relative;
+  height: 140px;
+  background: #222;
+  overflow: hidden;
+  margin: 10px;
+  border-radius: 10px;
+}
+
+.artifact {
+  position: absolute;
+  top: 40px;
+  font-size: 22px;
+  cursor: pointer;
+  background: #333;
+  padding: 4px;
+  border-radius: 8px;
+  line-height: 1.1;
+  transition: all 0.1s;
+}
+
+.artifact:hover {
+  background: #555;
+  transform: scale(1.1);
+}
+
+#inventory {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.inventory-item {
+  background: #333;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.inventory-item:hover {
+  background: #555;
+}
+
+#stats {
+  font-size: 16px;
+  margin: 10px 0;
+}
+
+.stat-item {
+  display: inline-block;
+  margin: 0 20px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🏭 MoneyFactory Tycoon</h1>
+
+<div id="stats">
+  <div class="stat-item">💰 Гроші: <strong id="money">0</strong></div>
+  <div class="stat-item">🏭 Заводи: <strong id="factories">1</strong></div>
+  <div class="stat-item">📈 Дохід: <strong id="income">0</strong>/сек</div>
+</div>
+
+<hr>
+
+<h3>🌍 Світ</h3>
+<div id="world">🌍 Земля</div>
+<button onclick="nextWorld()">➡️ Змінити світ</button>
+
+<hr>
+
+<h3>🛣️ Дорога артефактів</h3>
+<div id="road"></div>
+
+<hr>
+
+<h3>🎒 Інвентар (<span id="inv-count">0</span>)</h3>
+<div id="inventory"></div>
+
+<script>
+let money = 0;
+let factories = 1;
+
+let inventory = [];
+let artifactsOnRoad = [];
+
+let canSpawn = true;
+
+// 🌍 світи
+let worlds = [
+  {name:"🌍 Земля", bonus:1},
+  {name:"🔥 Вогонь", bonus:2},
+  {name:"🌊 Вода", bonus:3},
+  {name:"🌌 Космос", bonus:5}
+];
+
+let worldIndex = 0;
+
+// 🧿 артефакти
+function randomArtifact() {
+  let types = [
+    {name:"🧿 Звичайний", income:1, price:200},
+    {name:"💎 Рідкісний", income:3, price:500},
+    {name:"👑 Легендарний", income:7, price:1200}
+  ];
+  return types[Math.floor(Math.random()*types.length)];
+}
+
+// 🛣️ спавн артефакту
+function spawnArtifact() {
+  if (!canSpawn) return;
+  
+  let road = document.getElementById("road");
+
+  let a = randomArtifact();
+  a.id = Date.now();
+
+  let el = document.createElement("div");
+  el.className = "artifact";
+  el.innerHTML = `${a.name}<br>💰 ${a.price}$`;
+  el.style.left = "0px";
+
+  let obj = {x:0, el, data:a};
+
+  el.onclick = () => {
+    if (money < a.price) return;
+
+    money -= a.price;
+    inventory.push(a);
+
+    road.removeChild(el);
+    artifactsOnRoad = artifactsOnRoad.filter(o => o.el !== el);
+
+    update();
+    canSpawn = true;
+  };
+
+  artifactsOnRoad.push(obj);
+  road.appendChild(el);
+  canSpawn = false;
+}
+
+// 🚗 рух артефактів
+function moveArtifacts() {
+  let road = document.getElementById("road");
+  let roadWidth = road.offsetWidth;
+
+  artifactsOnRoad.forEach((obj, idx) => {
+    obj.x += 2;
+    obj.el.style.left = obj.x + "px";
+
+    // Видалення за межами
+    if (obj.x > roadWidth) {
+      road.removeChild(obj.el);
+      artifactsOnRoad.splice(idx, 1);
+      canSpawn = true;
+    }
+  });
+}
+
+// 💰 дохід від заводів
+function generateIncome() {
+  let bonus = worlds[worldIndex].bonus;
+  let incomePerSec = factories * bonus;
+  money += incomePerSec;
+  
+  update();
+}
+
+// 📊 оновлення інтерфейсу
+function update() {
+  document.getElementById("money").textContent = Math.floor(money);
+  document.getElementById("factories").textContent = factories;
+  
+  let bonus = worlds[worldIndex].bonus;
+  let incomePerSec = factories * bonus;
+  document.getElementById("income").textContent = incomePerSec;
+  
+  document.getElementById("world").textContent = worlds[worldIndex].name;
+  
+  // Показ інвентаря
+  let invDiv = document.getElementById("inventory");
+  invDiv.innerHTML = "";
+  document.getElementById("inv-count").textContent = inventory.length;
+  
+  inventory.forEach((item, idx) => {
+    let el = document.createElement("div");
+    el.className = "inventory-item";
+    el.innerHTML = `${item.name}`;
+    el.onclick = () => {
+      // Продаж артефакту
+      money += item.price * 0.5; // 50% від ціни
+      inventory.splice(idx, 1);
+      update();
+    };
+    invDiv.appendChild(el);
+  });
+}
+
+// 🌍 зміна світу
+function nextWorld() {
+  worldIndex = (worldIndex + 1) % worlds.length;
+  update();
+}
+
+// 🎮 основний цикл гри
+function gameLoop() {
+  moveArtifacts();
+  generateIncome();
+  
+  // Спавнимо артефакти кожну секунду
+  if (Math.random() < 0.3 && canSpawn) {
+    spawnArtifact();
+  }
+}
+
+// 🚀 запуск гри
+update();
+setInterval(gameLoop, 100);
+
+// Спавн першого артефакту
+setTimeout(() => spawnArtifact(), 500);
+</script>
+
+</body>
+</html>
