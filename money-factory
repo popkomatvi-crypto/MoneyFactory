@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<title>MoneyFactory Tycoon</title>
+
+<style>
+body {
+  font-family: Arial;
+  text-align: center;
+  background: #111;
+  color: white;
+}
+
+h1 {
+  font-size: 20px;
+}
+
+button {
+  margin: 5px;
+  padding: 10px;
+  border: none;
+  background: #333;
+  color: white;
+  border-radius: 10px;
+}
+
+#road {
+  position: relative;
+  height: 140px;
+  background: #222;
+  overflow: hidden;
+  margin: 10px;
+  border-radius: 10px;
+}
+
+.artifact {
+  position: absolute;
+  top: 40px;
+  font-size: 22px;
+  cursor: pointer;
+  background: #333;
+  padding: 4px;
+  border-radius: 8px;
+  line-height: 1.1;
+}
+
+#inventory {
+  margin-top: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🏭 MoneyFactory Tycoon</h1>
+
+<div id="money">💰 Гроші: 0</div>
+<div id="factories">🏭 Заводи: 1</div>
+<div id="income">📈 Дохід: 0/сек</div>
+
+<hr>
+
+<h3>🌍 Світ</h3>
+<div id="world">🌍 Земля</div>
+<button onclick="nextWorld()">➡️ Змінити світ</button>
+
+<hr>
+
+<h3>🛣️ Дорога артефактів</h3>
+<div id="road"></div>
+
+<hr>
+
+<h3>🎒 Інвентар</h3>
+<div id="inventory"></div>
+
+<script>
+let money = 0;
+let factories = 1;
+
+let inventory = [];
+let artifactsOnRoad = [];
+
+let canSpawn = true;
+
+// 🌍 світи
+let worlds = [
+  {name:"🌍 Земля", bonus:1},
+  {name:"🔥 Вогонь", bonus:2},
+  {name:"🌊 Вода", bonus:3},
+  {name:"🌌 Космос", bonus:5}
+];
+
+let worldIndex = 0;
+
+// 🧿 артефакти
+function randomArtifact() {
+  let types = [
+    {name:"🧿 Звичайний", income:1, price:200},
+    {name:"💎 Рідкісний", income:3, price:500},
+    {name:"👑 Легендарний", income:7, price:1200}
+  ];
+  return types[Math.floor(Math.random()*types.length)];
+}
+
+// 🛣️ спавн
+function spawnArtifact() {
+  let road = document.getElementById("road");
+
+  let a = randomArtifact();
+  a.id = Date.now();
+
+  let el = document.createElement("div");
+  el.className = "artifact";
+  el.innerHTML = `${a.name}<br>💰 ${a.price}$`;
+  el.style.left = "0px";
+
+  let obj = {x:0, el, data:a};
+
+  el.onclick = () => {
+    if (money < a.price) return;
+
+    money -= a.price;
+    inventory.push(a);
+
+    road.removeChild(el);
+    artifactsOnRoad = artifactsOnRoad.filter(o => o.el !== el);
+
+    update();
+
+    canSpawn = true;
+    spawnNext();
+  };
+
+  artifactsOnRoad.push(obj);
+  road.appendChild(el);
+}
+
+// 🚗
